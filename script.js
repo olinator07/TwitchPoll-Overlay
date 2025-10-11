@@ -1,72 +1,94 @@
-// === Firebase Realtime Database URL ===
-const DB_URL =
-  "https://twitchpolloverlay-default-rtdb.europe-west1.firebasedatabase.app/";
+/***********************
+ * TwitchPoll Overlay  *
+ * Timer + Balken Fix  *
+ ***********************/
 
-// Hilfsformat: Sekunden zu "mm:ss" (unter 60s => "Xs")
-function formatTime(totalSeconds) {
-  const s = Math.max(0, Number(totalSeconds || 0));
-  if (s < 60) return `${s}s`;
-  const m = Math.floor(s / 60);
-  const rest = s % 60;
-  return `${m}:${String(rest).padStart(2, "0")}`;
-}
+const DB_URL = "https://twitchpolloverlay-default-rtdb.europe-west1.firebasedatabase.app/";
 
-const optionsEl = document.getElementById("options");
-const timerEl   = document.getElementById("timer");
+// DOM-Elemente
+const elTimer  = document.getElementById("timer");
+const elBars   = [
+  { fill: document.getElementById("fill1"), label: document.getElementById("label1") },
+  { fill: document.getElementById("fill2"), label: document.getElementById("label2") },
+  { fill: document.getElementById("fill3"), label: document.getElementById("label3") },
+];
 
-// Rendert die Balken
-function renderOptions(names = [], counts = []) {
-  const total = counts.reduce((a, b) => a + b, 0) || 1;
+// Firebase (compat)
+firebase.initializeApp({ databaseURL: DB_URL });
+const db = firebase.database();
 
-  optionsEl.innerHTML = names.map((name, i) => {
-    const c = counts[i] || 0;
-    const pct = Math.round((c / total) * 100);
-    return `
-      <div class="option">
-        <div class="fill" style="width:${pct}%"></div>
-        <div class="label">${escapeHtml(name)} (${c})</div>
-      </div>`;
-  }).join("");
-}
+// Exakte Serverzeit
+let serverOffsetMs = 0;
+db.ref(".info/serverTimeOffset").on("value", snap => {
+  serverOffsetMs = +snap.val() || 0;
+});
 
-// Sanitizer
-function escapeHtml(s) {
-  return String(s)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;");
-}
+// Overlay-State
+let state = { status: "waiting", endsAt: 0 };
+let poll  = { o1: "Option 1", o2: "Option 2", o3: "Option 3", c1: 0, c2: 0, c3: 0 };
 
-// Lädt Daten aus der DB und aktualisiert UI
-async function updateOverlay() {
-  try {
-    // state
-    const stateRes = await fetch(`${DB_URL}/state.json`);
-    const state = await stateRes.json();
+// Status aus DB holen (robust gegen Tippfehler)
+db.ref("state").on("value", snap => {
+  const v = snap.val() || {};
+  const rawStatus = (v.status || "").toString().toLowerCase().replace(/\s+/g, "");
+  // normalize: alles was mit "run" beginnt zählt als running
+  if (rawStatus.startsWith("run")) state.status = "running";
+  else if (rawStatus.includes("cool")) state.status = "cooldown";
+  else state.status = rawStatus || "waiting";
 
-    // currentPoll
-    const pollRes = await fetch(`${DB_URL}/currentPoll.json`);
-    const poll = await pollRes.json();
+  state.endsAt = Number(v.endsAt || 0);
+  tick(); // sofort neu zeichnen
+});
 
-    // Timer: wenn endsAt vorhanden, restliche Zeit berechnen
-    let secondsLeft = 0;
-    if (state && typeof state.endsAt === "number") {
-      const nowMs = Date.now();
-      secondsLeft = Math.max(0, Math.round((state.endsAt - nowMs) / 1000));
-    }
-    timerEl.textContent = formatTime(secondsLeft);
+// Poll-Daten
+db.ref("currentPoll").on("value", snap => {
+  const v = snap.val() || {};
+  poll.o1 = v.o1 ?? "Option 1";
+  poll.o2 = v.o2 ?? "Option 2";
+  poll.o3 = v.o3 ?? "Option 3";
+  poll.c1 = Number(v.c1 || 0);
+  poll.c2 = Number(v.c2 || 0);
+  poll.c3 = Number(v.c3 || 0);
+  renderBars();
+});
 
-    const names  = poll ? [poll.o1, poll.o2, poll.o3].filter(Boolean) : [];
-    const counts = poll ? [poll.c1 || 0, poll.c2 || 0, poll.c3 || 0] : [];
-
-    if (names.length) {
-      renderOptions(names, counts);
-    }
-  } catch (e) {
-    // falls offline oder noch leer
+// Balken rendern
+function renderBars() {
+  const counts = [poll.c1, poll.c2, poll.c3];
+  const max = Math.max(1, ...counts);
+  const labels = [
+    `${poll.o1} (${poll.c1})`,
+    `${poll.o2} (${poll.c2})`,
+    `${poll.o3} (${poll.c3})`,
+  ];
+  for (let i = 0; i < 3; i++) {
+    const pct = Math.round((counts[i] / max) * 100);
+    elBars[i].fill.style.width = `${pct}%`;
+    elBars[i].label.textContent = labels[i];
   }
 }
 
-// alle 500ms aktualisieren (fein, aber leicht)
-setInterval(updateOverlay, 500);
-updateOverlay();
+// mm:ss
+function toMMSS(totalSeconds) {
+  const s = Math.max(0, Math.floor(totalSeconds));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return m > 0 ? `${m}m ${r}s` : `${r}s`;
+}
+
+// Timer-Update: zählt, sobald endsAt in der Zukunft liegt
+function tick() {
+  const nowMs = Date.now() + serverOffsetMs;
+  const remainingSec = (Number(state.endsAt) - nowMs) / 1000;
+
+  if (remainingSec > 0) {
+    elTimer.textContent = toMMSS(remainingSec);
+  } else {
+    elTimer.textContent = "0s";
+  }
+}
+
+// weiches Intervall
+setInterval(tick, 250);
+renderBars();
+tick();

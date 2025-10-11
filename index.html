@@ -2,115 +2,175 @@
 <html lang="de">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Community Vote Overlay</title>
-
-  <!-- Styles aus externer Datei -->
-  <link rel="stylesheet" href="style.css" />
-
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Community Vote</title>
   <style>
-    /* Falls style.css mal nicht geladen wird, ein Minimal-Fallback */
-    :root {
-      --bg: rgba(10, 10, 14, 0.55);
-      --card-w: 420px;            /* quadratisch ≈ 420x420 (Höhe auto) */
-      --accent: #a855f7;          /* Lila für Titel */
+    :root{
+      --bg: rgba(10,10,12,0.72);
+      --glass: blur(10px);
+      --accent: #a855f7; /* Lila */
       --text: #ffffff;
-      --bar: #6ee7b7;             /* dezentes Grün für Balken */
+      --muted:#cbd5e1;
+      --bar:#8b5cf6;    /* Lila Balken */
+      --w: 420px;       /* Box-Breite/Höhe -> schön quadratisch */
+      --r: 16px;
     }
-    html, body {
-      margin: 0; padding: 0; background: transparent; color: var(--text);
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", sans-serif;
-    }
-    .overlay {
-      position: fixed; inset: 24px auto auto 24px; /* links oben; in OBS frei platzierbar */
-      width: var(--card-w); z-index: 9999;
-    }
+    * { box-sizing: border-box; }
+    html,body { margin:0; background:transparent; color:var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", sans-serif; }
+    .wrap { position:fixed; top:24px; right:24px; width:var(--w); height:var(--w); display:flex; align-items:center; justify-content:center; }
     .card {
-      background: var(--bg);
-      -webkit-backdrop-filter: blur(6px);
-      backdrop-filter: blur(6px);
-      border-radius: 16px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
-      padding: 14px 14px 12px;
+      width:100%; height:100%;
+      border-radius:var(--r);
+      background:var(--bg);
+      backdrop-filter:var(--glass);
+      box-shadow:0 12px 40px rgba(0,0,0,.45);
+      padding:16px 16px 14px;
+      display:flex; flex-direction:column; gap:10px;
     }
     .title {
-      text-align: center;
-      font-weight: 800;
-      letter-spacing: .06em;
-      text-transform: uppercase;
-      color: var(--accent);
-      margin: 2px 0 4px;
-      font-size: 18px;
+      text-align:center; font-weight:800; letter-spacing:.06em;
+      color:var(--accent); text-transform:uppercase; font-size:18px; margin-top:2px;
     }
     .timer {
-      text-align: center;
-      font-size: 14px;
-      opacity: .95;
-      margin: 0 0 8px;
+      text-align:center; font-size:14px; color:var(--muted); margin-top:-2px;
     }
-    .rows { display: grid; gap: 8px; }
-    .row {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      align-items: center;
-      gap: 8px;
-      background: rgba(255,255,255,.06);
-      border-radius: 10px;
-      padding: 8px 10px;
-    }
-    .name {
-      font-weight: 600;
-      font-size: 14px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      opacity: .95;
-    }
-    .meter {
-      width: 44%;
-      height: 8px;
-      background: rgba(255,255,255,.18);
-      border-radius: 999px;
-      overflow: hidden;
-    }
+    .rows { display:flex; flex-direction:column; gap:8px; margin-top:2px; }
+    .row { display:flex; flex-direction:column; gap:4px; }
+    .label { display:flex; justify-content:space-between; gap:8px; font-size:14px; font-weight:600; }
+    .name { overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+    .count { color:var(--muted); font-weight:700; }
     .bar {
-      height: 100%;
-      width: 0%;
-      background: var(--bar);
-      border-radius: inherit;
-      transition: width 200ms ease;
+      height:22px; border-radius:10px; overflow:hidden; background:rgba(255,255,255,.12); position:relative;
     }
-
-    /* Optionale kompakte Fußzeile für Status — derzeit ausgeblendet */
-    .status { display: none; }
+    .fill { position:absolute; inset:0 auto 0 0; width:0%; background:var(--bar); transition:width .25s ease; }
+    .pct { position:absolute; right:10px; top:2px; font-size:12px; text-shadow:0 1px 2px rgba(0,0,0,.7); }
+    .hidden { display:none !important; }
+    /* kompakter Fußabstand */
+    .spacer { flex:1 1 auto; }
+    .foot { text-align:center; font-size:12px; color:var(--muted); opacity:.8; }
   </style>
 </head>
 <body>
-  <div class="overlay">
-    <div class="card">
-      <div class="title" id="title">COMMUNITY VOTE</div>
-      <div class="timer"><span id="time">0s</span></div>
+  <div class="wrap">
+    <div class="card hidden" id="card">
+      <div class="title">COMMUNITY VOTE</div>
+      <div class="timer" id="timer">--:--</div>
 
-      <div class="rows">
-        <div class="row">
-          <div class="name"></div>
-          <div class="meter"><div class="bar"></div></div>
-        </div>
-        <div class="row">
-          <div class="name"></div>
-          <div class="meter"><div class="bar"></div></div>
-        </div>
-        <div class="row">
-          <div class="name"></div>
-          <div class="meter"><div class="bar"></div></div>
-        </div>
+      <div class="rows" id="rows">
+        <!-- gefüllt per JS -->
       </div>
 
-      <div class="status" id="status"></div>
+      <div class="spacer"></div>
+      <div class="foot" id="foot"></div>
     </div>
   </div>
 
-  <!-- Deine Logik (holt /state und füllt Titel/Timer/Balken) -->
-  <script src="script.js"></script>
+  <script>
+  // === KONFIG ===
+  const DB_URL = "<FIREBASE_DB_URL>"; // z.B. https://twitchpolloverlay-default-rtdb.europe-west1.firebasedatabase.app
+  const PATH   = "/state.json";       // wir lesen /state
+
+  // Prozente anzeigen (true) oder geheim (false)
+  const SHOW_PERCENT = true;
+
+  const card  = document.getElementById('card');
+  const rows  = document.getElementById('rows');
+  const timer = document.getElementById('timer');
+  const foot  = document.getElementById('foot');
+
+  let lastData = null;
+  let lastRenderTs = 0;
+
+  // Hilfsfunktionen
+  const clamp = (v,min,max)=>Math.max(min,Math.min(max,v));
+
+  function fmtMMSS(msLeft){
+    if (!Number.isFinite(msLeft) || msLeft < 0) msLeft = 0;
+    const total = Math.floor(msLeft/1000);
+    const mm = Math.floor(total/60);
+    const ss = total % 60;
+    return `${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+  }
+
+  function render(data){
+    // Nur anzeigen, wenn running
+    if (!data || data.status !== 'running' || !Array.isArray(data.options) || !Array.isArray(data.counts)) {
+      card.classList.add('hidden');
+      lastData = null;
+      return;
+    }
+    card.classList.remove('hidden');
+
+    // Timer
+    const now = Date.now();
+    const msLeft = (data.endsAt||0) - now;
+    timer.textContent = fmtMMSS(msLeft);
+
+    // Optionen + Counts
+    const opts = data.options;
+    const cnts = data.counts;
+    const total = Math.max(1, cnts.reduce((a,b)=>a+b,0));
+
+    let html = '';
+    for (let i=0;i<opts.length;i++){
+      const name = String(opts[i] ?? '').trim() || `Option ${i+1}`;
+      const c    = Number(cnts[i] ?? 0);
+      const pct  = Math.round((c / total) * 100);
+
+      html += `
+        <div class="row">
+          <div class="label">
+            <span class="name">${i+1}. ${escapeHtml(name)}</span>
+            <span class="count">${c} ${c===1?'Vote':'Votes'}</span>
+          </div>
+          <div class="bar">
+            <div class="fill" style="width:${clamp(pct,0,100)}%"></div>
+            ${SHOW_PERCENT ? `<div class="pct">${pct}%</div>` : ``}
+          </div>
+        </div>`;
+    }
+    rows.innerHTML = html;
+
+    // Fußzeile klein: Summe
+    foot.textContent = `Gesamt: ${total} ${total===1?'Vote':'Votes'}`;
+
+    lastData = data;
+  }
+
+  function escapeHtml(s){
+    return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+
+  // Pull alle 700ms (leicht gedrosselt)
+  async function tick(){
+    try{
+      const res = await fetch(DB_URL + PATH + '?ns=' + encodeURIComponent(new URL(DB_URL).host) + '&_=' + Date.now(), {
+        cache: 'no-store',
+        method: 'GET',
+        headers: { 'Accept':'application/json' }
+      });
+      if (!res.ok) throw new Error(res.status);
+      const data = await res.json();
+      render(data);
+    }catch(e){
+      // Wenn Fehler: ausblenden (Overlay nicht flackern lassen)
+      // console.warn('fetch state failed', e);
+    }finally{
+      setTimeout(tick, 700);
+    }
+  }
+
+  // Zwischen den Fetches Timer glatt weiterlaufen lassen
+  function localTimerPaint(){
+    if (lastData && lastData.status === 'running'){
+      const msLeft = (lastData.endsAt||0) - Date.now();
+      timer.textContent = fmtMMSS(msLeft);
+    }
+    requestAnimationFrame(localTimerPaint);
+  }
+
+  tick();
+  requestAnimationFrame(localTimerPaint);
+  </script>
 </body>
 </html>

@@ -20,7 +20,7 @@ html, body {
 /* ===== Karte (kompakter quadratisch) ===== */
 .card {
   width: 300px;
-  height: 270px;          /* <- leicht kleiner, wirkt quadratischer */
+  height: 250px;          /* <- leicht kleiner, wirkt quadratischer */
   padding: 25px 25px 19px; /* <- unten weniger Platz */
   border-radius: var(--radius);
   background: var(--bg-card);
@@ -102,4 +102,5 @@ h2 {
   background: var(--accent);
   opacity: 0.9;
 }
+
 

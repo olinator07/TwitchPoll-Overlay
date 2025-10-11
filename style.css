@@ -17,23 +17,24 @@ html, body {
   color: var(--text);
 }
 
-/* ===== Karte (quadratisch) ===== */
+/* ===== Karte (kompakter quadratisch) ===== */
 .card {
   width: 300px;
-  height: 300px;
-  padding: 14px 14px 16px;
+  height: 270px;          /* <- leicht kleiner, wirkt quadratischer */
+  padding: 14px 14px 8px; /* <- unten weniger Platz */
   border-radius: var(--radius);
   background: var(--bg-card);
   box-shadow: var(--shadow);
   backdrop-filter: blur(6px);
   display: flex;
   flex-direction: column;
+  justify-content: flex-start;
 }
 
 /* ===== Header ===== */
 .card-header {
   text-align: center;
-  margin-bottom: 6px;            /* <— weniger Platz vor den Balken */
+  margin-bottom: 4px;
 }
 
 h2 {
@@ -41,12 +42,12 @@ h2 {
   font-weight: 900;
   font-size: 18px;
   letter-spacing: 0.8px;
-  color: var(--accent);          /* lila Titel */
+  color: var(--accent);
   text-shadow: 0 2px 3px rgba(0, 0, 0, 0.4);
 }
 
 .timer {
-  margin-top: 2px;               /* <— nah unter Überschrift */
+  margin-top: 1px;
   font-size: 13px;
   color: var(--muted);
 }
@@ -55,9 +56,9 @@ h2 {
 .options {
   display: flex;
   flex-direction: column;
-  gap: 7px;                      /* <— kompakter */
+  gap: 6px;
   width: 100%;
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
 .option {
@@ -65,14 +66,16 @@ h2 {
   border-radius: 10px;
   overflow: hidden;
   position: relative;
-  height: 26px;
+  height: 24px; /* minimal kleiner für bessere Proportion */
   display: flex;
   align-items: center;
 }
 
 .option .fill {
   position: absolute;
-  inset: 0 auto 0 0;
+  left: 0;
+  top: 0;
+  bottom: 0;
   width: 0%;
   background: linear-gradient(90deg, var(--accent), var(--bar-fill));
   opacity: 0.85;

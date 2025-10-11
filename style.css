@@ -21,7 +21,7 @@ html, body {
 .card {
   width: 300px;
   height: 270px;          /* <- leicht kleiner, wirkt quadratischer */
-  padding: 14px 14px 8px; /* <- unten weniger Platz */
+  padding: 25px 25px 19px; /* <- unten weniger Platz */
   border-radius: var(--radius);
   background: var(--bg-card);
   box-shadow: var(--shadow);
@@ -102,3 +102,4 @@ h2 {
   background: var(--accent);
   opacity: 0.9;
 }
+

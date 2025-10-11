@@ -1,6 +1,6 @@
 // ==== CONFIG ====
 const FIREBASE_URL = new URLSearchParams(location.search).get('fb')
-  || 'https://twitchpolloverlay-default-rtdb.europe-west1.firebasedatabase.app/'; // <-- passe an
+  || 'https://twitchpolloverlay-default-rtdb.europe-west1.firebasedatabase.app/state.json'; // <-- passe an
 const POLL_INTERVAL_MS = 1000;
 
 // UI refs
@@ -130,5 +130,6 @@ function scheduleSmoothTimer(){
 
 // Kickoff
 tick();
+
 
 

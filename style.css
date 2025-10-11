@@ -5,8 +5,8 @@
   --accent: #a970ff;
   --bar-bg: rgba(25, 25, 30, 0.7);
   --bar-fill: #8b5cff;
-  --shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
-  --radius: 20px;
+  --shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  --radius: 22px;
 }
 
 * { box-sizing: border-box; }
@@ -18,59 +18,64 @@ html, body {
   color: var(--text);
 }
 
-/* ==== Karte ==== */
+/* ===== Karte ===== */
 .card {
-  width: 600px;
-  padding: 14px 18px 12px;
+  width: 300px;
+  height: 300px;
+  padding: 16px;
   border-radius: var(--radius);
   background: var(--bg-card);
   box-shadow: var(--shadow);
   backdrop-filter: blur(6px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
 }
 
-/* ==== Kopfbereich ==== */
+/* ===== Header ===== */
 .card-header {
+  width: 100%;
   text-align: center;
-  margin-bottom: 10px;
   position: relative;
+  margin-bottom: 4px;
 }
 
 h2 {
   margin: 0;
   font-weight: 800;
-  font-size: 20px;
-  letter-spacing: 1px;
+  font-size: 18px;
+  letter-spacing: 0.8px;
   color: var(--accent);
   text-shadow: 0 2px 3px rgba(0, 0, 0, 0.4);
 }
 
 .meta {
   position: absolute;
-  right: 0;
+  right: 4px;
   top: 0;
   color: var(--muted);
-  font-weight: 600;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .timer {
   opacity: 0.9;
 }
 
-/* ==== Optionen ==== */
+/* ===== Optionen ===== */
 .options {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-top: 4px;
+  gap: 8px;
+  width: 100%;
 }
 
 .option {
   background: var(--bar-bg);
-  border-radius: 10px;
+  border-radius: 8px;
   overflow: hidden;
   position: relative;
-  height: 22px;
+  height: 26px;
   display: flex;
   align-items: center;
 }
@@ -82,7 +87,7 @@ h2 {
   bottom: 0;
   width: 0%;
   background: linear-gradient(90deg, var(--accent), var(--bar-fill));
-  opacity: 0.75;
+  opacity: 0.8;
   transition: width 0.4s ease;
 }
 
@@ -99,8 +104,8 @@ h2 {
   content: "";
   position: absolute;
   left: 5px;
-  top: 4px;
-  bottom: 4px;
+  top: 5px;
+  bottom: 5px;
   width: 3px;
   border-radius: 3px;
   background: var(--accent);

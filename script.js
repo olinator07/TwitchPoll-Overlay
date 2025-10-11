@@ -2,7 +2,6 @@
 const FIREBASE_DB = "https://twitchpolloverlay-default-rtdb.europe-west1.firebasedatabase.app";
 
 const els = {
-  status: document.getElementById("status"),
   timer: document.getElementById("timer"),
   optionsWrap: document.getElementById("options"),
 };
@@ -10,8 +9,7 @@ const els = {
 let poll = {
   labels: ["—","—","—"],
   counts: [0,0,0],
-  endsAt: 0,          // ms seit 1970
-  status: "—"
+  endsAt: 0
 };
 
 function renderOptions(){
@@ -50,34 +48,16 @@ async function fetchJson(path){
 
 async function updateOnce(){
   try{
-    // ===== /state lesen =====
     const state = await fetchJson("/state");
     if (state){
-      // endsAt kann String ODER Number sein -> immer casten
-      if (state.endsAt !== undefined && state.endsAt !== null){
-        const n = Number(state.endsAt);
-        if (!Number.isNaN(n) && n > 0) {
-          poll.endsAt = n;
-        }
-      }
-
-      // Fallback: secondsLeft (s) akzeptieren (String/Number)
-      if ((!poll.endsAt || poll.endsAt <= Date.now()) && state.secondsLeft !== undefined){
+      const n = Number(state.endsAt);
+      if (!Number.isNaN(n) && n > 0) poll.endsAt = n;
+      else if (state.secondsLeft !== undefined){
         const s = Number(state.secondsLeft);
-        if (!Number.isNaN(s) && s >= 0){
-          poll.endsAt = Date.now() + s * 1000;
-        }
+        if (!Number.isNaN(s)) poll.endsAt = Date.now() + s * 1000;
       }
-
-      if (typeof state.status === "string") {
-        poll.status = state.status;
-      } else if (state.status != null) {
-        poll.status = String(state.status);
-      }
-      els.status.textContent = poll.status;
     }
 
-    // ===== /currentPoll lesen =====
     const cur = await fetchJson("/currentPoll");
     if (cur){
       poll.labels = [cur.o1 ?? "Option 1", cur.o2 ?? "Option 2", cur.o3 ?? "Option 3"];

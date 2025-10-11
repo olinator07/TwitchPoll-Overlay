@@ -1,103 +1,108 @@
-:root{
-  --bg-card: rgba(45, 45, 50, 0.8);
-  --text: #f5f5fa;
-  --muted: #b3b3c5;
+:root {
+  --bg-card: rgba(50, 50, 55, 0.8);
+  --text: #f3f3f7;
+  --muted: #b0b0be;
   --accent: #a970ff;
-  --bar-bg: rgba(20,20,25,0.6);
+  --bar-bg: rgba(25, 25, 30, 0.7);
   --bar-fill: #8b5cff;
-  --shadow: 0 12px 40px rgba(0,0,0,.45);
-  --radius: 18px;
+  --shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+  --radius: 20px;
 }
 
-*{ box-sizing:border-box; }
-html,body{
-  margin:0; padding:0;
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  padding: 0;
   background: transparent;
   font-family: "Inter", "Segoe UI", Roboto, sans-serif;
   color: var(--text);
 }
 
-/* ===== Karte ===== */
-.card{
-  width: 800px;
-  padding: 20px 24px 18px;
+/* ==== Karte ==== */
+.card {
+  width: 600px;
+  padding: 14px 18px 12px;
   border-radius: var(--radius);
   background: var(--bg-card);
   box-shadow: var(--shadow);
-  backdrop-filter: blur(8px);
-  transition: all .2s ease;
+  backdrop-filter: blur(6px);
 }
 
-/* ===== Kopfbereich ===== */
-.card-header{
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
+/* ==== Kopfbereich ==== */
+.card-header {
+  text-align: center;
   margin-bottom: 10px;
+  position: relative;
 }
 
-h2{
-  margin:0;
+h2 {
+  margin: 0;
   font-weight: 800;
-  font-size: 22px;
-  letter-spacing: .9px;
+  font-size: 20px;
+  letter-spacing: 1px;
   color: var(--accent);
-  text-shadow: 0 2px 4px rgba(0,0,0,.4);
+  text-shadow: 0 2px 3px rgba(0, 0, 0, 0.4);
 }
 
-.meta{
+.meta {
+  position: absolute;
+  right: 0;
+  top: 0;
   color: var(--muted);
   font-weight: 600;
-  font-size: 16px;
+  font-size: 14px;
 }
 
-.timer{
-  opacity:.9;
+.timer {
+  opacity: 0.9;
 }
 
-/* ===== Optionen ===== */
-.options{
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-  margin-top: 8px;
+/* ==== Optionen ==== */
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
 }
 
-.option{
+.option {
   background: var(--bar-bg);
   border-radius: 10px;
   overflow: hidden;
   position: relative;
-  height: 28px;
-  display:flex;
-  align-items:center;
-  backdrop-filter: brightness(1.2);
+  height: 22px;
+  display: flex;
+  align-items: center;
 }
 
-.option .fill{
-  position:absolute;
-  left:0; top:0; bottom:0;
+.option .fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
   width: 0%;
   background: linear-gradient(90deg, var(--accent), var(--bar-fill));
-  opacity:.75;
-  transition: width .5s ease;
+  opacity: 0.75;
+  transition: width 0.4s ease;
 }
 
-.option .label{
+.option .label {
   position: relative;
-  padding: 0 14px;
-  z-index:1;
+  padding: 0 10px;
+  z-index: 1;
   font-weight: 600;
-  font-size: 15px;
-  text-shadow: 0 1px 2px rgba(0,0,0,.4);
+  font-size: 13px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
-.option::before{
-  content:"";
-  position:absolute;
-  left:6px; top:5px; bottom:5px;
-  width: 4px;
-  border-radius:4px;
+.option::before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  border-radius: 3px;
   background: var(--accent);
-  opacity:.95;
+  opacity: 0.9;
 }

@@ -1,81 +1,72 @@
-/* ========= Konfiguration ========= */
-const FIREBASE_DB = "https://twitchpolloverlay-default-rtdb.europe-west1.firebasedatabase.app";
+// === Firebase Realtime Database URL ===
+const DB_URL =
+  "https://twitchpolloverlay-default-rtdb.europe-west1.firebasedatabase.app/";
 
-const els = {
-  timer: document.getElementById("timer"),
-  optionsWrap: document.getElementById("options"),
-};
-
-let poll = {
-  labels: ["—","—","—"],
-  counts: [0,0,0],
-  endsAt: 0
-};
-
-function renderOptions(){
-  els.optionsWrap.innerHTML = "";
-  const max = Math.max(1, ...poll.counts);
-
-  poll.labels.forEach((label, idx) => {
-    const row = document.createElement("div");
-    row.className = "option";
-
-    const fill = document.createElement("div");
-    fill.className = "fill";
-    fill.style.width = Math.round((poll.counts[idx] / max) * 100) + "%";
-
-    const text = document.createElement("div");
-    text.className = "label";
-    text.textContent = `${label} (${poll.counts[idx]})`;
-
-    row.appendChild(fill);
-    row.appendChild(text);
-    els.optionsWrap.appendChild(row);
-  });
+// Hilfsformat: Sekunden zu "mm:ss" (unter 60s => "Xs")
+function formatTime(totalSeconds) {
+  const s = Math.max(0, Number(totalSeconds || 0));
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  const rest = s % 60;
+  return `${m}:${String(rest).padStart(2, "0")}`;
 }
 
-function fmtSecondsLeft(ms){
-  if (!ms || ms < 0) return "0s";
-  const s = Math.max(0, Math.floor(ms/1000));
-  return `${s}s`;
+const optionsEl = document.getElementById("options");
+const timerEl   = document.getElementById("timer");
+
+// Rendert die Balken
+function renderOptions(names = [], counts = []) {
+  const total = counts.reduce((a, b) => a + b, 0) || 1;
+
+  optionsEl.innerHTML = names.map((name, i) => {
+    const c = counts[i] || 0;
+    const pct = Math.round((c / total) * 100);
+    return `
+      <div class="option">
+        <div class="fill" style="width:${pct}%"></div>
+        <div class="label">${escapeHtml(name)} (${c})</div>
+      </div>`;
+  }).join("");
 }
 
-async function fetchJson(path){
-  const res = await fetch(`${FIREBASE_DB}${path}.json`, { cache: "no-store" });
-  if (!res.ok) throw new Error(res.status + " " + res.statusText);
-  return await res.json();
+// Sanitizer
+function escapeHtml(s) {
+  return String(s)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
 }
 
-async function updateOnce(){
-  try{
-    const state = await fetchJson("/state");
-    if (state){
-      const n = Number(state.endsAt);
-      if (!Number.isNaN(n) && n > 0) poll.endsAt = n;
-      else if (state.secondsLeft !== undefined){
-        const s = Number(state.secondsLeft);
-        if (!Number.isNaN(s)) poll.endsAt = Date.now() + s * 1000;
-      }
+// Lädt Daten aus der DB und aktualisiert UI
+async function updateOverlay() {
+  try {
+    // state
+    const stateRes = await fetch(`${DB_URL}/state.json`);
+    const state = await stateRes.json();
+
+    // currentPoll
+    const pollRes = await fetch(`${DB_URL}/currentPoll.json`);
+    const poll = await pollRes.json();
+
+    // Timer: wenn endsAt vorhanden, restliche Zeit berechnen
+    let secondsLeft = 0;
+    if (state && typeof state.endsAt === "number") {
+      const nowMs = Date.now();
+      secondsLeft = Math.max(0, Math.round((state.endsAt - nowMs) / 1000));
     }
+    timerEl.textContent = formatTime(secondsLeft);
 
-    const cur = await fetchJson("/currentPoll");
-    if (cur){
-      poll.labels = [cur.o1 ?? "Option 1", cur.o2 ?? "Option 2", cur.o3 ?? "Option 3"];
-      poll.counts = [Number(cur.c1||0), Number(cur.c2||0), Number(cur.c3||0)];
-      renderOptions();
+    const names  = poll ? [poll.o1, poll.o2, poll.o3].filter(Boolean) : [];
+    const counts = poll ? [poll.c1 || 0, poll.c2 || 0, poll.c3 || 0] : [];
+
+    if (names.length) {
+      renderOptions(names, counts);
     }
-  }catch(e){
-    console.warn("Overlay fetch error:", e.message);
+  } catch (e) {
+    // falls offline oder noch leer
   }
 }
 
-function tick(){
-  const left = poll.endsAt ? (poll.endsAt - Date.now()) : 0;
-  els.timer.textContent = fmtSecondsLeft(left);
-}
-
-setInterval(updateOnce, 1000);
-setInterval(tick, 200);
-
-updateOnce();
-tick();
+// alle 500ms aktualisieren (fein, aber leicht)
+setInterval(updateOverlay, 500);
+updateOverlay();

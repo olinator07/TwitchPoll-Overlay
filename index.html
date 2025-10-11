@@ -1,22 +1,33 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>TwitchPoll Overlay</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div id="overlay" class="card">
+  <div class="card">
     <div class="card-header">
       <h2>COMMUNITY VOTE</h2>
-      <div class="meta">
-        <span id="timer" class="timer">0s</span>
-      </div>
+      <div id="timer" class="timer">0s</div>
     </div>
 
     <div id="options" class="options">
-      <!-- Optionen werden von script.js eingesetzt -->
+      <!-- Wird von script.js gefüllt -->
+      <!-- Fallback, falls noch keine Daten da sind -->
+      <div class="option">
+        <div class="fill" style="width:0%"></div>
+        <div class="label">Option A (0)</div>
+      </div>
+      <div class="option">
+        <div class="fill" style="width:0%"></div>
+        <div class="label">Option B (0)</div>
+      </div>
+      <div class="option">
+        <div class="fill" style="width:0%"></div>
+        <div class="label">Option C (0)</div>
+      </div>
     </div>
   </div>
 

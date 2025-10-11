@@ -1,0 +1,94 @@
+/* ===== Grundlayout (transparent für OBS) ===== */
+:root{
+  --bg-card: rgba(64, 64, 70, 0.85);
+  --text: #e9e9ee;
+  --muted: #a9a9b2;
+  --accent: #9147ff;            /* Twitch-Lila */
+  --bar-bg: #2d2d32;
+  --bar-fill: #6f54ff;
+  --shadow: 0 12px 50px rgba(0,0,0,.35);
+  --radius: 18px;
+}
+
+*{ box-sizing:border-box; }
+html,body{
+  margin:0; padding:0;
+  background: transparent;      /* WICHTIG: transparent für OBS */
+  font-family: ui-sans-serif, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+  color: var(--text);
+}
+
+/* ===== Karte ===== */
+.card{
+  width: 860px;                  /* Größe kannst du in OBS trotzdem frei skalieren */
+  padding: 22px 24px 18px;
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(6px);
+}
+
+/* ===== Kopfbereich ===== */
+.card-header{
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+h2{
+  margin:0;
+  font-weight: 800;
+  letter-spacing: .8px;
+  color: var(--accent);          /* Lila Überschrift */
+}
+
+/* kleine Infotexte */
+.meta{
+  display:flex;
+  gap: 14px;
+  align-items:center;
+  color: var(--muted);
+  font-weight: 600;
+}
+.timer{ opacity:.9; }
+
+/* Wenn du den Status GAR NICHT sehen willst, ent-kommentieren: */
+/* #status{ display:none; } */
+
+/* ===== Optionen / Balken ===== */
+.options{ display:flex; flex-direction:column; gap:10px; margin-top: 10px; }
+
+.option{
+  background: var(--bar-bg);
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  height: 34px;
+  display:flex; align-items:center;
+}
+
+.option .fill{
+  position:absolute; inset:0 auto 0 0;
+  width: 0%;
+  background: linear-gradient(90deg, var(--accent), var(--bar-fill));
+  opacity:.65;
+}
+
+.option .label{
+  position: relative;
+  padding: 0 14px;
+  z-index:1;
+  font-weight: 700;
+  text-shadow: 0 1px 1px rgba(0,0,0,.25);
+}
+
+/* kleine Lila Markierung links */
+.option::before{
+  content:"";
+  position:absolute; left:8px; top:7px; bottom:7px;
+  width: 6px; border-radius:6px;
+  background: var(--accent);
+  opacity:.9;
+}

@@ -1,14 +1,11 @@
 /* ========= EINSTELLUNG =========
-   Entweder ROOT mit "state"-Objekt ODER direkt /state.json.
-   Beispiel 1 (Root enthält state):
-   const FIREBASE_URL = "https://twitchpolloverlay-default-rtdb.europe-west1.firebasedatabase.app/.json";
-
-   Beispiel 2 (direkt state-Node):
-   const FIREBASE_URL = "https://twitchpolloverlay-default-rtdb.europe-west1.firebasedatabase.app/state.json";
+   Entweder Root mit "state" ODER direkt /state.json.
 */
 const FIREBASE_URL = "https://twitchpolloverlay-default-rtdb.europe-west1.firebasedatabase.app/.json";
 
-// Poll-Intervall (ms)
+// Umschalten: während Pause vollständig verstecken?
+const HIDE_IN_COOLDOWN = false;
+
 const POLL_MS = 1000;
 
 // DOM-Refs
@@ -39,34 +36,52 @@ function fmtTime(sec){
   return `${m}:${s.toString().padStart(2,"0")}`;
 }
 
-function applyState(state){
-  // State kann null sein -> warten
-  if (!state || !Array.isArray(state.options) || state.options.length === 0){
+function showWaiting(){
+  optionsWrap.classList.add("hide");
+  emptyEl.classList.remove("hide");
+  timerEl.textContent = "0:00";
+}
+
+function showCooldown(nextAt){
+  if (HIDE_IN_COOLDOWN) {
     optionsWrap.classList.add("hide");
-    emptyEl.classList.remove("hide");
-    timerEl.textContent = "0:00";
+    emptyEl.classList.add("hide");
+    timerEl.textContent = "";
     return;
   }
-
   emptyEl.classList.add("hide");
   optionsWrap.classList.remove("hide");
 
-  // Optionen & Counts
-  const opts = state.options.slice(0,3);
-  const counts = Array.isArray(state.counts) ? state.counts.slice(0,3) : [0,0,0];
-
-  const sum = counts.reduce((a,b)=>a+b,0);
+  // Balken grau/leer
   for (let i=0;i<3;i++){
-    const name = opts[i] ?? "—";
-    const val  = counts[i] ?? 0;
-    const pct  = sum > 0 ? (val / sum) * 100 : 0;
-
-    oEls[i].textContent = name;
-    cEls[i].textContent = `(${val})`;
-    bEls[i].style.width = `${pct}%`;
+    bEls[i].style.width = "0%";
+    cEls[i].textContent = "(0)";
+    if (!oEls[i].textContent || oEls[i].textContent === "—") {
+      oEls[i].textContent = "";
+    }
   }
 
-  // Timer (nur wenn endsAt vorhanden)
+  let left = 0;
+  if (typeof nextAt === "number") {
+    left = Math.max(0, Math.floor((nextAt - Date.now())/1000));
+  }
+  timerEl.textContent = `Nächste Abstimmung in ${fmtTime(left)}`;
+}
+
+function showRunning(state){
+  emptyEl.classList.add("hide");
+  optionsWrap.classList.remove("hide");
+
+  const opts = Array.isArray(state.options) ? state.options.slice(0,3) : ["", "", ""];
+  const counts = Array.isArray(state.counts) ? state.counts.slice(0,3) : [0,0,0];
+  const sum = counts.reduce((a,b)=>a+b,0);
+
+  for (let i=0;i<3;i++){
+    oEls[i].textContent = opts[i] ?? "";
+    cEls[i].textContent = `(${counts[i] ?? 0})`;
+    bEls[i].style.width = sum > 0 ? `${(counts[i]/sum)*100}%` : "0%";
+  }
+
   let left = 0;
   if (typeof state.endsAt === "number"){
     left = Math.max(0, Math.floor((state.endsAt - Date.now())/1000));
@@ -74,17 +89,28 @@ function applyState(state){
   timerEl.textContent = fmtTime(left);
 }
 
+function applyState(raw){
+  const state = raw && raw.state ? raw.state : raw;
+  if (!state) { showWaiting(); return; }
+
+  const status = (state.status || "").toLowerCase();
+
+  if (status === "running") {
+    showRunning(state);
+  } else if (status === "cooldown") {
+    showCooldown(state.nextAt);
+  } else {
+    showWaiting();
+  }
+}
+
 async function fetchState(){
   try{
     const res = await fetch(`${FIREBASE_URL}`, { cache: "no-store" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-
-    // data kann {state:{...}} sein ODER direkt {...}
-    const state = data && data.state ? data.state : data;
-    applyState(state);
+    applyState(data);
   }catch(err){
-    // Im Fehlerfall lieber nichts crashen lassen
     console.warn("[Overlay] fetchState error:", err);
   }
 }

@@ -52,13 +52,24 @@
 </head>
 <body>
   <div class="wrap">
-    <div class="card hidden" id="card">
-      <div class="title">COMMUNITY VOTE</div>
-      <div class="timer" id="timer">--:--</div>
+    <div id="card" class="card">
+  <div id="title">COMMUNITY VOTE</div>
+  <div id="timer">0:00</div>
 
-      <div class="rows" id="rows">
-        <!-- gefüllt per JS -->
-      </div>
+  <div class="row" data-row="1">
+    <div class="bar"><div class="fill"></div></div>
+    <div class="text"></div>
+  </div>
+  <div class="row" data-row="2">
+    <div class="bar"><div class="fill"></div></div>
+    <div class="text"></div>
+  </div>
+  <div class="row" data-row="3">
+    <div class="bar"><div class="fill"></div></div>
+    <div class="text"></div>
+  </div>
+</div>
+
 
       <div class="spacer"></div>
       <div class="foot" id="foot"></div>
@@ -174,4 +185,5 @@
   </script>
 </body>
 </html>
+
 

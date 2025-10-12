@@ -1,71 +1,100 @@
-// >>> HIER DEINE FIREBASE-URL OHNE /state.json ANPASSEN <<<
-const FIREBASE_URL = 'https://twitchpolloverlay-default-rtdb.europe-west1.firebasedatabase.app';
+// ========= KONFIG =========
+// <- HIER deine *genaue* Firebase-JSON-URL zur "state.json" eintragen!
+const DB_URL = "https://twitchpolloverlay-default-rtdb.europe-west1.firebasedatabase.app/state.json";
+// ==========================
 
-const elTimer = document.getElementById('timer');
-const elSubtitle = document.getElementById('subtitle');
-const elBars = document.getElementById('bars');
+const $subtitle = document.getElementById("subtitle");
+const $bars = document.getElementById("bars");
+const $opt0 = document.getElementById("opt0");
+const $opt1 = document.getElementById("opt1");
+const $opt2 = document.getElementById("opt2");
 
-const elOpt = [
-  document.getElementById('opt1'),
-  document.getElementById('opt2'),
-  document.getElementById('opt3'),
-];
-const elBar = [
-  document.getElementById('bar1'),
-  document.getElementById('bar2'),
-  document.getElementById('bar3'),
-];
+let lastState = null;
+let tickTimer = null;
 
-let last = null;
-
-function fmt(ms){
-  if(ms < 0) ms = 0;
-  const s = Math.floor(ms/1000);
-  const m = Math.floor(s/60);
-  const sec = s%60;
-  return `${m}:${sec.toString().padStart(2,'0')}`;
+function fmt(msLeft){
+  // Millisekunden -> m:ss (z.B. 2:05)
+  const total = Math.max(0, Math.floor(msLeft/1000));
+  const m = Math.floor(total/60);
+  const s = total % 60;
+  return `${m}:${s.toString().padStart(2,"0")}`;
 }
 
-function draw(state){
-  const now = Date.now();
-  const left = (state.endsAt ?? 0) - now;
-  elTimer.textContent = fmt(left);
+function paintIdle(state){
+  // Nächste Abstimmung in …
+  $bars.style.display = "none";
 
-  if(state.status === 'running'){
-    elSubtitle.textContent = 'Abstimmung läuft…';
-    elBars.classList.remove('hidden');
-
-    const options = state.options ?? ['Option A','Option B','Option C'];
-    const counts  = state.counts  ?? [0,0,0];
-    const total = Math.max(1, counts[0]+counts[1]+counts[2]);
-
-    for(let i=0;i<3;i++){
-      elOpt[i].textContent = `${options[i] ?? `Option ${i+1}`} (${counts[i] ?? 0})`;
-      elBar[i].style.width = `${Math.round((counts[i] ?? 0)*100/total)}%`;
-    }
+  const endsAt = Number(state?.endsAt || 0);
+  if (endsAt > 0){
+    const left = endsAt - Date.now();
+    $subtitle.textContent = `Nächste Abstimmung in ${fmt(left)}`;
   } else {
-    // waiting (Cooldown) – Balken ausblenden, Timer zeigt Rest bis Start
-    elSubtitle.textContent = 'Nächste Abstimmung in';
-    elBars.classList.add('hidden');
+    $subtitle.textContent = "Nächste Abstimmung in —";
   }
 }
 
-async function tick(){
+function paintRunning(state){
+  // Laufende Abstimmung: Balken ein/füllen
+  $bars.style.display = "flex";
+
+  const opts = state?.options || ["Option A","Option B","Option C"];
+  const counts = state?.counts || [0,0,0];
+  const endsAt = Number(state?.endsAt || 0);
+  const left = Math.max(0, endsAt - Date.now());
+  $subtitle.textContent = fmt(left);
+
+  const max = Math.max(1, ...counts);
+  [
+    [$opt0, 0],
+    [$opt1, 1],
+    [$opt2, 2],
+  ].forEach(([el, i]) => {
+    const label = `${opts[i] ?? `Option ${i+1}`} (${counts[i] ?? 0})`;
+    el.textContent = label;
+    const fill = el.parentElement; // .bar-fill
+    const percent = Math.round(((counts[i] ?? 0) / max) * 100);
+    fill.style.width = `${percent}%`;
+  });
+}
+
+async function pull(){
   try{
-    const res = await fetch(`${FIREBASE_URL}/state.json?cachebust=${Date.now()}`, {cache:'no-store'});
-    if(!res.ok) throw new Error(res.status);
-    const state = await res.json();
-    if(!state || typeof state !== 'object'){ return; }
-    last = state;
-    draw(state);
-  }catch(e){
-    // Beim Ausfall einfach den letzten Zustand weiterzählen lassen
-    if(last){
-      last.endsAt -= 1000;
-      draw(last);
+    const res = await fetch(DB_URL, { cache: "no-store" });
+    const data = await res.json();
+
+    // Wir erwarten ein Objekt { status, endsAt, options, counts }
+    const state = data || {};
+    const status = state.status || "idle";
+
+    if (status === "running"){
+      paintRunning(state);
+    } else {
+      paintIdle(state);
     }
+
+    lastState = state;
+  }catch(e){
+    // Bei Fehler: Timer ausblenden, Hinweis anzeigen
+    $subtitle.textContent = "Verbindung …";
+    $bars.style.display = "none";
   }
 }
 
-setInterval(tick, 1000);
-tick();
+function start(){
+  if (tickTimer) clearInterval(tickTimer);
+  // Ziehen und jede Sekunde aktualisieren
+  pull();
+  tickTimer = setInterval(() => {
+    // Timer-Anzeige aktualisieren ohne neuen Fetch:
+    if (lastState){
+      if (lastState.status === "running") paintRunning(lastState);
+      else paintIdle(lastState);
+    }
+    // Alle 2 Sek. vom Server nachladen, damit Counts/Wechsel ankommen
+  }, 1000);
+
+  // Leichter Poll, um neue Zähler/Status zu holen
+  setInterval(pull, 2000);
+}
+
+start();

@@ -1,6 +1,6 @@
 // ========= KONFIG =========
 // <- HIER deine *genaue* Firebase-JSON-URL zur "state.json" eintragen!
-const DB_URL = "https://twitchpolloverlay-default-rtdb.europe-west1.firebasedatabase.app/state.json";
+const DB_URL = "https://twitchpolloverlay-default-rtdb.europe-west1.firebasedatabase.app";
 // ==========================
 
 const $subtitle = document.getElementById("subtitle");
@@ -98,3 +98,4 @@ function start(){
 }
 
 start();
+

@@ -1,119 +1,71 @@
-/* ========= EINSTELLUNG =========
-   Entweder Root mit "state" ODER direkt /state.json.
-*/
-const FIREBASE_URL = "https://twitchpolloverlay-default-rtdb.europe-west1.firebasedatabase.app/.json";
+// >>> HIER DEINE FIREBASE-URL OHNE /state.json ANPASSEN <<<
+const FIREBASE_URL = 'https://twitchpolloverlay-default-rtdb.europe-west1.firebasedatabase.app';
 
-// Umschalten: während Pause vollständig verstecken?
-const HIDE_IN_COOLDOWN = false;
+const elTimer = document.getElementById('timer');
+const elSubtitle = document.getElementById('subtitle');
+const elBars = document.getElementById('bars');
 
-const POLL_MS = 1000;
-
-// DOM-Refs
-const timerEl = document.getElementById("timer");
-const emptyEl = document.getElementById("empty");
-const optionsWrap = document.getElementById("options");
-
-const oEls = [
-  document.getElementById("o1"),
-  document.getElementById("o2"),
-  document.getElementById("o3"),
+const elOpt = [
+  document.getElementById('opt1'),
+  document.getElementById('opt2'),
+  document.getElementById('opt3'),
 ];
-const bEls = [
-  document.getElementById("b1"),
-  document.getElementById("b2"),
-  document.getElementById("b3"),
-];
-const cEls = [
-  document.getElementById("c1"),
-  document.getElementById("c2"),
-  document.getElementById("c3"),
+const elBar = [
+  document.getElementById('bar1'),
+  document.getElementById('bar2'),
+  document.getElementById('bar3'),
 ];
 
-function fmtTime(sec){
-  if (sec < 0 || !Number.isFinite(sec)) return "0:00";
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return `${m}:${s.toString().padStart(2,"0")}`;
+let last = null;
+
+function fmt(ms){
+  if(ms < 0) ms = 0;
+  const s = Math.floor(ms/1000);
+  const m = Math.floor(s/60);
+  const sec = s%60;
+  return `${m}:${sec.toString().padStart(2,'0')}`;
 }
 
-function showWaiting(){
-  optionsWrap.classList.add("hide");
-  emptyEl.classList.remove("hide");
-  timerEl.textContent = "0:00";
-}
+function draw(state){
+  const now = Date.now();
+  const left = (state.endsAt ?? 0) - now;
+  elTimer.textContent = fmt(left);
 
-function showCooldown(nextAt){
-  if (HIDE_IN_COOLDOWN) {
-    optionsWrap.classList.add("hide");
-    emptyEl.classList.add("hide");
-    timerEl.textContent = "";
-    return;
+  if(state.status === 'running'){
+    elSubtitle.textContent = 'Abstimmung läuft…';
+    elBars.classList.remove('hidden');
+
+    const options = state.options ?? ['Option A','Option B','Option C'];
+    const counts  = state.counts  ?? [0,0,0];
+    const total = Math.max(1, counts[0]+counts[1]+counts[2]);
+
+    for(let i=0;i<3;i++){
+      elOpt[i].textContent = `${options[i] ?? `Option ${i+1}`} (${counts[i] ?? 0})`;
+      elBar[i].style.width = `${Math.round((counts[i] ?? 0)*100/total)}%`;
+    }
+  } else {
+    // waiting (Cooldown) – Balken ausblenden, Timer zeigt Rest bis Start
+    elSubtitle.textContent = 'Nächste Abstimmung in';
+    elBars.classList.add('hidden');
   }
-  emptyEl.classList.add("hide");
-  optionsWrap.classList.remove("hide");
+}
 
-  // Balken grau/leer
-  for (let i=0;i<3;i++){
-    bEls[i].style.width = "0%";
-    cEls[i].textContent = "(0)";
-    if (!oEls[i].textContent || oEls[i].textContent === "—") {
-      oEls[i].textContent = "";
+async function tick(){
+  try{
+    const res = await fetch(`${FIREBASE_URL}/state.json?cachebust=${Date.now()}`, {cache:'no-store'});
+    if(!res.ok) throw new Error(res.status);
+    const state = await res.json();
+    if(!state || typeof state !== 'object'){ return; }
+    last = state;
+    draw(state);
+  }catch(e){
+    // Beim Ausfall einfach den letzten Zustand weiterzählen lassen
+    if(last){
+      last.endsAt -= 1000;
+      draw(last);
     }
   }
-
-  let left = 0;
-  if (typeof nextAt === "number") {
-    left = Math.max(0, Math.floor((nextAt - Date.now())/1000));
-  }
-  timerEl.textContent = `Nächste Abstimmung in ${fmtTime(left)}`;
 }
 
-function showRunning(state){
-  emptyEl.classList.add("hide");
-  optionsWrap.classList.remove("hide");
-
-  const opts = Array.isArray(state.options) ? state.options.slice(0,3) : ["", "", ""];
-  const counts = Array.isArray(state.counts) ? state.counts.slice(0,3) : [0,0,0];
-  const sum = counts.reduce((a,b)=>a+b,0);
-
-  for (let i=0;i<3;i++){
-    oEls[i].textContent = opts[i] ?? "";
-    cEls[i].textContent = `(${counts[i] ?? 0})`;
-    bEls[i].style.width = sum > 0 ? `${(counts[i]/sum)*100}%` : "0%";
-  }
-
-  let left = 0;
-  if (typeof state.endsAt === "number"){
-    left = Math.max(0, Math.floor((state.endsAt - Date.now())/1000));
-  }
-  timerEl.textContent = fmtTime(left);
-}
-
-function applyState(raw){
-  const state = raw && raw.state ? raw.state : raw;
-  if (!state) { showWaiting(); return; }
-
-  const status = (state.status || "").toLowerCase();
-
-  if (status === "running") {
-    showRunning(state);
-  } else if (status === "cooldown") {
-    showCooldown(state.nextAt);
-  } else {
-    showWaiting();
-  }
-}
-
-async function fetchState(){
-  try{
-    const res = await fetch(`${FIREBASE_URL}`, { cache: "no-store" });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    applyState(data);
-  }catch(err){
-    console.warn("[Overlay] fetchState error:", err);
-  }
-}
-
-fetchState();
-setInterval(fetchState, POLL_MS);
+setInterval(tick, 1000);
+tick();

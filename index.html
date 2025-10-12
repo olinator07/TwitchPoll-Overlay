@@ -2,41 +2,19 @@
 <html lang="de">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>TwitchPoll Overlay</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="wrap">
-    <div class="card">
-      <h1 class="heading">COMMUNITY VOTE</h1>
+  <div id="card">
+    <h1 id="title">COMMUNITY VOTE</h1>
+    <div id="subtitle"><span id="timer">0:00</span></div>
 
-      <!-- Subline: hier schreibt dein script.js die Zeit rein -->
-      <div class="subline">
-        <span id="timer">0:00</span>
-      </div>
-
-      <!-- Balken: genau diese Struktur erwartet das Script -->
-      <div class="poll">
-        <div class="bar">
-          <div class="fill"></div>
-          <div class="label">Option A (0)</div>
-        </div>
-
-        <div class="bar">
-          <div class="fill"></div>
-          <div class="label">Option B (0)</div>
-        </div>
-
-        <div class="bar">
-          <div class="fill"></div>
-          <div class="label">Option C (0)</div>
-        </div>
-      </div>
-    </div>
+    <!-- Container, wird von JS gefüllt -->
+    <div id="rows"></div>
   </div>
 
-  <!-- Dein bestehendes Script – hier keine Änderungen nötig -->
   <script src="script.js"></script>
 </body>
 </html>

@@ -1,101 +1,116 @@
-// ========= KONFIG =========
-// <- HIER deine *genaue* Firebase-JSON-URL zur "state.json" eintragen!
-const DB_URL = "https://twitchpolloverlay-default-rtdb.europe-west1.firebasedatabase.app";
-// ==========================
+// ---- KONFIG ----
+const FIREBASE_BASE = "https://twitchpolloverlay-default-rtdb.europe-west1.firebasedatabase.app"; // <- DEINE Basis-URL (ohne /state.json)
+const PULL_MS = 1000;
 
-const $subtitle = document.getElementById("subtitle");
-const $bars = document.getElementById("bars");
-const $opt0 = document.getElementById("opt0");
-const $opt1 = document.getElementById("opt1");
-const $opt2 = document.getElementById("opt2");
+// UI-Referenzen – erwartet 3 Reihen mit .row, darin .label und .fill
+const titleEl = document.getElementById("title");      // "COMMUNITY VOTE"
+const timerEl = document.getElementById("timer");      // 00:00 / 1:23 etc.
+const rows = Array.from(document.querySelectorAll(".row")); // 3 Zeilen
 
-let lastState = null;
-let tickTimer = null;
+// Hilfsfunktionen
+const clamp = (v,min,max) => Math.max(min, Math.min(max, v));
 
-function fmt(msLeft){
-  // Millisekunden -> m:ss (z.B. 2:05)
-  const total = Math.max(0, Math.floor(msLeft/1000));
-  const m = Math.floor(total/60);
+function msToClock(ms) {
+  if (!ms || ms <= 0) return "0:00";
+  const total = Math.ceil(ms / 1000);
+  const m = Math.floor(total / 60);
   const s = total % 60;
   return `${m}:${s.toString().padStart(2,"0")}`;
 }
 
-function paintIdle(state){
-  // Nächste Abstimmung in …
-  $bars.style.display = "none";
+/**
+ * Nimmt die Firebase-Antwort und normalisiert sie auf:
+ * {
+ *   status: "running"|"idle"|...,
+ *   endsAt:  <ms since epoch>,
+ *   options: ["A","B","C"],
+ *   counts:  [0,0,0]
+ * }
+ */
+function normalizeState(data) {
+  if (!data) return null;
 
-  const endsAt = Number(state?.endsAt || 0);
-  if (endsAt > 0){
-    const left = endsAt - Date.now();
-    $subtitle.textContent = `Nächste Abstimmung in ${fmt(left)}`;
-  } else {
-    $subtitle.textContent = "Nächste Abstimmung in —";
+  // Variante 1: Root hat bereits "state"
+  let st = data.state ?? data;
+
+  // Wenn counts/options direkt vorhanden -> gut
+  let options = Array.isArray(st.options) ? st.options.slice(0,3) : null;
+  let counts  = Array.isArray(st.counts)  ? st.counts.slice(0,3)  : null;
+
+  // Variante 2: Legacy currentPoll (o1/o2/o3 und c1/c2/c3)
+  if (!options || !counts) {
+    const cp = data.currentPoll ?? st.currentPoll;
+    if (cp) {
+      options = [
+        cp.o1 ?? "Option A",
+        cp.o2 ?? "Option B",
+        cp.o3 ?? "Option C"
+      ];
+      counts = [
+        Number(cp.c1 ?? 0),
+        Number(cp.c2 ?? 0),
+        Number(cp.c3 ?? 0)
+      ];
+      // EndsAt evtl. aus state holen, falls vorhanden
+      st = {
+        status: (st.status ?? "running"),
+        endsAt: Number(st.endsAt ?? 0),
+        options, counts
+      };
+    }
   }
+
+  // Fallbacks, falls immer noch nichts da
+  if (!options) options = ["Option A", "Option B", "Option C"];
+  if (!counts)  counts  = [0,0,0];
+
+  return {
+    status: st.status ?? "idle",
+    endsAt: Number(st.endsAt ?? 0),
+    options,
+    counts
+  };
 }
 
-function paintRunning(state){
-  // Laufende Abstimmung: Balken ein/füllen
-  $bars.style.display = "flex";
+function render(state) {
+  if (!state) return;
 
-  const opts = state?.options || ["Option A","Option B","Option C"];
-  const counts = state?.counts || [0,0,0];
-  const endsAt = Number(state?.endsAt || 0);
-  const left = Math.max(0, endsAt - Date.now());
-  $subtitle.textContent = fmt(left);
+  const now = Date.now();
+  const remainingMs = state.endsAt > now ? (state.endsAt - now) : 0;
 
-  const max = Math.max(1, ...counts);
-  [
-    [$opt0, 0],
-    [$opt1, 1],
-    [$opt2, 2],
-  ].forEach(([el, i]) => {
-    const label = `${opts[i] ?? `Option ${i+1}`} (${counts[i] ?? 0})`;
-    el.textContent = label;
-    const fill = el.parentElement; // .bar-fill
-    const percent = Math.round(((counts[i] ?? 0) / max) * 100);
-    fill.style.width = `${percent}%`;
+  // Timer: bei "running" die Restzeit, sonst "Nächste Abstimmung in …"
+  timerEl.textContent = msToClock(remainingMs);
+
+  // Balken & Labels
+  const total = Math.max(1, state.counts.reduce((a,b)=>a+b, 0));
+  rows.forEach((row, i) => {
+    const label = row.querySelector(".label");
+    const fill  = row.querySelector(".fill");
+
+    const name  = state.options[i] ?? `Option ${i+1}`;
+    const votes = Number(state.counts[i] ?? 0);
+
+    if (label) label.textContent = `${name} (${votes})`;
+
+    const pct = clamp((votes / total) * 100, 0, 100);
+    if (fill) fill.style.width = `${pct}%`;
   });
 }
 
-async function pull(){
-  try{
-    const res = await fetch(DB_URL, { cache: "no-store" });
-    const data = await res.json();
-
-    // Wir erwarten ein Objekt { status, endsAt, options, counts }
-    const state = data || {};
-    const status = state.status || "idle";
-
-    if (status === "running"){
-      paintRunning(state);
-    } else {
-      paintIdle(state);
-    }
-
-    lastState = state;
-  }catch(e){
-    // Bei Fehler: Timer ausblenden, Hinweis anzeigen
-    $subtitle.textContent = "Verbindung …";
-    $bars.style.display = "none";
+async function pullOnce() {
+  try {
+    // Direkt /state.json lesen – Cache vermeiden
+    const url = `${FIREBASE_BASE}/state.json?ts=${Date.now()}`;
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const raw = await res.json();
+    const state = normalizeState(raw);
+    render(state);
+  } catch (e) {
+    console.warn("[Overlay] fetch/state error:", e);
   }
 }
 
-function start(){
-  if (tickTimer) clearInterval(tickTimer);
-  // Ziehen und jede Sekunde aktualisieren
-  pull();
-  tickTimer = setInterval(() => {
-    // Timer-Anzeige aktualisieren ohne neuen Fetch:
-    if (lastState){
-      if (lastState.status === "running") paintRunning(lastState);
-      else paintIdle(lastState);
-    }
-    // Alle 2 Sek. vom Server nachladen, damit Counts/Wechsel ankommen
-  }, 1000);
-
-  // Leichter Poll, um neue Zähler/Status zu holen
-  setInterval(pull, 2000);
-}
-
-start();
-
+// Start
+pullOnce();
+setInterval(pullOnce, PULL_MS);

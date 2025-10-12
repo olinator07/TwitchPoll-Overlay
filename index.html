@@ -2,28 +2,17 @@
 <html lang="de">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>TwitchPoll Overlay</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div id="overlay" class="card">
-    <div class="header">
-      <h1 class="title">COMMUNITY VOTE</h1>
-      <p id="subtitle" class="subtitle">—</p>
-    </div>
+  <div class="overlay-card" id="card">
+    <h1 class="title">COMMUNITY VOTE</h1>
+    <p class="subtitle" id="subtitle">Nächste Abstimmung in <span id="timeLeft">–:–</span></p>
 
-    <div id="bars" class="bars">
-      <div class="bar">
-        <div class="bar-fill"><span class="bar-label" id="opt0">—</span></div>
-      </div>
-      <div class="bar">
-        <div class="bar-fill"><span class="bar-label" id="opt1">—</span></div>
-      </div>
-      <div class="bar">
-        <div class="bar-fill"><span class="bar-label" id="opt2">—</span></div>
-      </div>
-    </div>
+    <!-- Die Liste ist nur sichtbar, wenn eine Abstimmung läuft -->
+    <ul class="options" id="options" aria-live="polite"></ul>
   </div>
 
   <script src="script.js"></script>

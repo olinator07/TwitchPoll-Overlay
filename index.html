@@ -7,14 +7,36 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="overlay-card" id="card">
-    <h1 class="title">COMMUNITY VOTE</h1>
-    <p class="subtitle" id="subtitle">Nächste Abstimmung in <span id="timeLeft">–:–</span></p>
+  <div class="wrap">
+    <div class="card">
+      <h1 class="heading">COMMUNITY VOTE</h1>
 
-    <!-- Die Liste ist nur sichtbar, wenn eine Abstimmung läuft -->
-    <ul class="options" id="options" aria-live="polite"></ul>
+      <!-- Subline: hier schreibt dein script.js die Zeit rein -->
+      <div class="subline">
+        <span id="timer">0:00</span>
+      </div>
+
+      <!-- Balken: genau diese Struktur erwartet das Script -->
+      <div class="poll">
+        <div class="bar">
+          <div class="fill"></div>
+          <div class="label">Option A (0)</div>
+        </div>
+
+        <div class="bar">
+          <div class="fill"></div>
+          <div class="label">Option B (0)</div>
+        </div>
+
+        <div class="bar">
+          <div class="fill"></div>
+          <div class="label">Option C (0)</div>
+        </div>
+      </div>
+    </div>
   </div>
 
+  <!-- Dein bestehendes Script – hier keine Änderungen nötig -->
   <script src="script.js"></script>
 </body>
 </html>

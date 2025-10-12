@@ -1,83 +1,86 @@
 :root{
-  --bg: rgba(35,35,40,.78);
-  --border: rgba(255,255,255,.11);
+  --bg: rgba(60, 61, 66, 0.78);
+  --card-radius: 22px;
+  --accent: #b18cff;
   --text: #e9e9ee;
-  --muted:#b9bdc9;
-  --accent:#9b6cff; /* dein Lila */
-  --bar-bg:#3f4149;
-  --bar-fill:#9b6cff;
+  --text-dim: #b9bac8;
+  --bar-bg: rgba(255,255,255,.08);
+  --bar-fill: rgba(177,140,255,.28);
 }
 
-*{box-sizing:border-box}
-html,body{height:100%}
-body{
+/* Voll transparent hinter dem Card-Rahmen (OBS „Transparenter Hintergrund“) */
+html,body{
+  height:100%;
   margin:0;
   background:transparent;
-  font-family: Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;
-  color:var(--text);
+  font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Helvetica, Arial;
+  color: var(--text);
 }
 
-#card{
-  width: 560px;
-  padding: 18px 18px 16px;
-  border-radius: 24px;
+/* Quadratische Karte */
+.card{
+  width: 520px;
+  height: 520px;
   background: var(--bg);
-  border: 1px solid var(--border);
-  backdrop-filter: blur(10px);
-}
-
-.header{
+  backdrop-filter: blur(8px);
+  border-radius: var(--card-radius);
+  box-shadow: 0 12px 28px rgba(0,0,0,.25);
+  padding: 22px 24px;
   display:flex;
-  align-items:baseline;
-  justify-content:space-between;
-  margin-bottom:10px;
+  flex-direction:column;
+  justify-content:flex-start;
 }
 
-h1{
-  margin:0;
-  letter-spacing:.8px;
-  font-size:22px;
-  font-weight:800;
-  color:var(--accent);
-  text-shadow:0 0 10px rgba(155,108,255,.25);
+/* Header mittig */
+.header{
+  text-align:center;
+  margin-bottom: 18px;
 }
 
-#timer{
-  font-variant-numeric: tabular-nums;
-  color:var(--muted);
-  font-weight:700;
+.title{
+  margin: 6px 0 2px;
+  letter-spacing:.6px;
+  font-weight: 800;
+  color: var(--accent);
 }
 
-#subtitle{
-  margin: 2px 0 10px;
-  color: var(--muted);
-  font-weight:600;
+.subtitle{
+  margin: 0;
+  color: var(--text-dim);
+  font-weight: 600;
 }
 
-.bars.hidden{ display:none; }
-
-.row{ margin: 8px 0; }
-
-.label{
-  display:inline-block;
-  margin-bottom:6px;
-  font-weight:700;
-  color:#fff;
-  text-shadow:0 0 10px rgba(0,0,0,.15);
+/* Balkenblock */
+.bars{
+  margin-top: 8px;
+  display:flex;
+  flex-direction:column;
+  gap: 14px;
 }
 
+/* Einzelbalken */
 .bar{
-  height:16px;
   width:100%;
-  background:var(--bar-bg);
-  border-radius:10px;
-  overflow:hidden;
+  height: 38px;
+  background: var(--bar-bg);
+  border-radius: 14px;
+  overflow: hidden;
+  position: relative;
 }
-.fill{
+
+.bar-fill{
   height:100%;
   width:0%;
-  background:var(--bar-fill);
-  border-radius:10px;
-  transition: width .35s ease;
-  box-shadow:0 0 18px rgba(155,108,255,.45) inset;
+  background: var(--bar-fill);
+  border-radius: 14px;
+  display:flex;
+  align-items:center;
+}
+
+.bar-label{
+  position: relative;
+  z-index: 2;
+  color: var(--text);
+  font-weight:700;
+  padding-left: 12px;
 }

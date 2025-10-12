@@ -4,13 +4,25 @@
 const FIREBASE_BASE =
   "https://twitchpolloverlay-default-rtdb.europe-west1.firebasedatabase.app"; // <- deine Basis-URL (ohne /state.json)
 
-const POLL_INTERVAL_MS = 1000;
+const PULL_MS = 2000;    // wie oft wir vom Server holen
+const TICK_MS = 200;     // wie oft lokal der Timer aktualisiert wird
 
-const titleEl   = document.getElementById("title");
-const timerEl   = document.getElementById("timer");
-const rowsWrap  = document.getElementById("rows");
+const titleEl  = document.getElementById("title");
+const timerEl  = document.getElementById("timer");
+const rowsWrap = document.getElementById("rows");
 
-/* Hilfen */
+let cached = {
+  status: "idle",
+  options: [],
+  counts: [],
+  // Timing
+  endsAtMs: 0,           // absolute Zeit (ms)
+  secondsLeft: 0,        // alternativ: Restsekunden
+  // lokale Ableitungen
+  baseLeftMs: 0,         // bei letztem Pull verbleibende ms
+  lastSync: 0            // Zeitpunkt des letzten Pulls
+};
+
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const msToClock = (ms) => {
   if (!ms || ms <= 0) return "0:00";
@@ -20,9 +32,8 @@ const msToClock = (ms) => {
   return `${m}:${s.toString().padStart(2, "0")}`;
 };
 
-/* Zeilen neu bauen */
 function renderRows(options, counts) {
-  rowsWrap.innerHTML = ""; // neu aufbauen
+  rowsWrap.innerHTML = "";
   options.forEach((opt, i) => {
     const row = document.createElement("div");
     row.className = "row";
@@ -44,7 +55,6 @@ function renderRows(options, counts) {
   });
 }
 
-/* Füllbreiten aktualisieren (nachdem die Zeilen existieren) */
 function updateBars(counts) {
   const total = Math.max(1, counts.reduce((a, b) => a + Number(b || 0), 0));
   const fills = rowsWrap.querySelectorAll(".fill");
@@ -54,56 +64,82 @@ function updateBars(counts) {
   });
 }
 
-/* Daten normalisieren – erwartet /state.json */
-function normalize(resJson) {
-  if (!resJson) return null;
-
-  // Falls Root:{state:{...}}
-  const st = resJson.state ?? resJson;
-
-  // Fallbacks
-  const options = Array.isArray(st.options) ? st.options.slice(0, 3) : ["Option A","Option B","Option C"];
-  const counts  = Array.isArray(st.counts)  ? st.counts.slice(0, 3)  : [0,0,0];
-
-  return {
-    status:  st.status ?? "idle",
-    endsAt:  Number(st.endsAt ?? 0),
-    options, counts
-  };
-}
-
-/* Render-Logik */
-function render(state) {
-  if (!state) return;
-
-  const now = Date.now();
-  const left = state.endsAt > now ? (state.endsAt - now) : 0;
-
-  if (state.status === "running") {
-    // Laufende Abstimmung
-    timerEl.textContent = msToClock(left);
-    renderRows(state.options, state.counts);  // neu bauen + labels mit counts
-    updateBars(state.counts);                 // füllbreiten
-  } else {
-    // Idle/Cooldown – nur Timer-Text zentriert
-    timerEl.textContent = msToClock(left);
-    renderRows([], []); // keine Balken
-  }
-}
-
-/* Pull-Loop */
+/** Pull von /state.json und Normalisieren */
 async function pull() {
   try {
     const url = `${FIREBASE_BASE}/state.json?ts=${Date.now()}`;
     const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
-    const state = normalize(json);
-    render(state);
-  } catch (err) {
-    console.warn("[Overlay] fetch/state error:", err);
+
+    // /state kann entweder direkt das Objekt sein oder als {state:{...}} kommen
+    const st = json?.state ?? json ?? {};
+
+    const status  = st.status ?? "idle";
+    const options = Array.isArray(st.options) ? st.options.slice(0, 3) : [];
+    const counts  = Array.isArray(st.counts)  ? st.counts.slice(0, 3)  : [];
+
+    // Timing herum: endsAt (ms) ODER secondsLeft (s)
+    const now = Date.now();
+    const endsAtMs = Number(st.endsAt ?? 0);
+    const secondsLeft = Number(st.secondsLeft ?? 0);
+
+    // baseLeftMs bei Pull neu setzen
+    let baseLeftMs = 0;
+    if (endsAtMs > now) {
+      baseLeftMs = endsAtMs - now;
+    } else if (secondsLeft > 0) {
+      baseLeftMs = secondsLeft * 1000;
+    }
+
+    const wasStatus = cached.status;
+    const optsChanged =
+      options.length !== cached.options.length ||
+      options.some((o, i) => o !== cached.options[i]);
+
+    cached = {
+      ...cached,
+      status,
+      options,
+      counts,
+      endsAtMs,
+      secondsLeft,
+      baseLeftMs,
+      lastSync: Date.now()
+    };
+
+    // Wenn Status wechselt oder Optionen wechseln: Zeilen neu bauen
+    if (status === "running") {
+      if (wasStatus !== "running" || optsChanged) {
+        renderRows(options, counts);
+      }
+      updateBars(counts);
+    } else {
+      // Idle/Cooldown: keine Balken zeigen
+      if (rowsWrap.children.length) rowsWrap.innerHTML = "";
+    }
+  } catch (e) {
+    console.warn("[Overlay] fetch/state error:", e);
+  }
+}
+
+/** Lokales Timer-Ticken (zwischen Pulls) */
+function tick() {
+  const { baseLeftMs, lastSync, status, counts } = cached;
+  let left = 0;
+  if (baseLeftMs > 0 && lastSync > 0) {
+    left = Math.max(0, baseLeftMs - (Date.now() - lastSync));
+  }
+
+  // Timer-Anzeige (immer)
+  timerEl.textContent = msToClock(left);
+
+  // Bei laufender Abstimmung Balken weich halten (Counts ändern sich nur beim Pull)
+  if (status === "running" && counts.length) {
+    updateBars(counts);
   }
 }
 
 pull();
-setInterval(pull, POLL_INTERVAL_MS);
+setInterval(pull, PULL_MS);
+setInterval(tick, TICK_MS);

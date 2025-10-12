@@ -4,48 +4,31 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>TwitchPoll Overlay</title>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-  <meta http-equiv="Pragma" content="no-cache" />
-  <meta http-equiv="Expires" content="0" />
 </head>
 <body>
-  <div class="card">
+  <div id="card">
     <div class="header">
-      <div class="title">COMMUNITY VOTE</div>
-      <div id="timer" class="timer">0:00</div>
+      <h1>COMMUNITY VOTE</h1>
+      <div id="timer">0:00</div>
     </div>
 
-    <div id="options" class="options">
-      <!-- Zeile 1 -->
+    <div id="subtitle">Warte auf Abstimmung…</div>
+
+    <div id="bars" class="bars hidden">
       <div class="row">
-        <span class="label" id="o1">—</span>
-        <div class="bar">
-          <div class="fill" id="b1"></div>
-        </div>
-        <span class="count" id="c1">(0)</span>
+        <span class="label" id="opt1">Option A (0)</span>
+        <div class="bar"><div id="bar1" class="fill"></div></div>
       </div>
-      <!-- Zeile 2 -->
       <div class="row">
-        <span class="label" id="o2">—</span>
-        <div class="bar">
-          <div class="fill" id="b2"></div>
-        </div>
-        <span class="count" id="c2">(0)</span>
+        <span class="label" id="opt2">Option B (0)</span>
+        <div class="bar"><div id="bar2" class="fill"></div></div>
       </div>
-      <!-- Zeile 3 -->
       <div class="row">
-        <span class="label" id="o3">—</span>
-        <div class="bar">
-          <div class="fill" id="b3"></div>
-        </div>
-        <span class="count" id="c3">(0)</span>
+        <span class="label" id="opt3">Option C (0)</span>
+        <div class="bar"><div id="bar3" class="fill"></div></div>
       </div>
     </div>
-
-    <div id="empty" class="empty hide">Warte auf Abstimmung…</div>
   </div>
 
   <script src="script.js"></script>

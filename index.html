@@ -2,31 +2,26 @@
 <html lang="de">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>TwitchPoll Overlay</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div id="card">
+  <div id="overlay" class="card">
     <div class="header">
-      <h1>COMMUNITY VOTE</h1>
-      <div id="timer">0:00</div>
+      <h1 class="title">COMMUNITY VOTE</h1>
+      <p id="subtitle" class="subtitle">—</p>
     </div>
 
-    <div id="subtitle">Warte auf Abstimmung…</div>
-
-    <div id="bars" class="bars hidden">
-      <div class="row">
-        <span class="label" id="opt1">Option A (0)</span>
-        <div class="bar"><div id="bar1" class="fill"></div></div>
+    <div id="bars" class="bars">
+      <div class="bar">
+        <div class="bar-fill"><span class="bar-label" id="opt0">—</span></div>
       </div>
-      <div class="row">
-        <span class="label" id="opt2">Option B (0)</span>
-        <div class="bar"><div id="bar2" class="fill"></div></div>
+      <div class="bar">
+        <div class="bar-fill"><span class="bar-label" id="opt1">—</span></div>
       </div>
-      <div class="row">
-        <span class="label" id="opt3">Option C (0)</span>
-        <div class="bar"><div id="bar3" class="fill"></div></div>
+      <div class="bar">
+        <div class="bar-fill"><span class="bar-label" id="opt2">—</span></div>
       </div>
     </div>
   </div>

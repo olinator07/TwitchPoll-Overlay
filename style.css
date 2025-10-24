@@ -1,78 +1,75 @@
 :root{
-  --bg: rgba(64,64,70,.72);
-  --fg: #e9e9ee;
-  --muted: #b9bbbf;
-  --accent: #b388ff;   /* lila Titel */
-  --bar: rgba(255,255,255,.10);
-  --fill: #8b5cf6;     /* lila Füllung */
-  --radius: 22px;
+  --bg: rgba(18,18,20,0.60);
+  --accent: #a855f7; /* Lila */
+  --text: #ffffff;
+  --muted: rgba(255,255,255,0.75);
+  --barbg: rgba(255,255,255,0.16);
+  --fill: #a855f7; /* Lila Balken */
 }
 
 html,body{
-  margin:0; padding:0;
-  background: transparent;   /* OBS: transparenter Hintergrund */
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
-  color: var(--fg);
+  margin:0; padding:0; background:transparent; color:var(--text);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
 }
 
-#card{
-  width: 520px;              /* kompakt */
+.overlay{
+  position: fixed;
+  top: 24px; right: 24px;
+  z-index: 99999;
+}
+
+.card{
+  width: 380px;               /* kompakt / rechteckig */
+  border-radius: 14px; 
   background: var(--bg);
-  border-radius: var(--radius);
-  padding: 18px 20px 16px;
-  box-shadow: 0 12px 30px rgba(0,0,0,.25);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+  padding: 14px 14px 12px;
 }
 
-h1{
-  margin:0;
-  font-size: 28px;
-  letter-spacing: 1px;
+.header{
+  display:flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.title{
+  font-weight: 900; letter-spacing: .06em; font-size: 18px; color: var(--accent);
+  text-align: left;
+}
+
+.timer{
+  font-weight: 700; font-variant-numeric: tabular-nums;
+  color: var(--text);
+  opacity: 0.95;
+}
+
+.pause{
   text-align:center;
-  color: var(--accent);
-}
-
-#subtitle{
-  margin-top: 6px;
-  text-align:center;
-  color: var(--muted);
-  font-weight: 600;
-}
-
-#rows{
-  margin-top: 14px;
-  display: grid;
-  gap: 10px;
-}
-
-/* eine Zeile */
-.row{
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 6px;
-}
-
-/* Label links über dem Balken */
-.label{
   font-size: 14px;
-  color: var(--fg);
+  color: var(--muted);
+  margin: 6px 0 2px;
 }
 
-/* Balken-Hintergrund */
+.poll .row{ margin: 8px 0; }
+.label{
+  display:flex; justify-content: space-between; gap: 10px;
+  font-weight: 600; font-size: 14px;
+}
+.label .name{
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.label .count{
+  color: var(--muted);
+}
+
 .bar{
-  width: 100%;
-  height: 14px;
-  background: var(--bar);
-  border-radius: 999px;
-  overflow: hidden;
+  position: relative; height: 22px; border-radius: 8px; overflow:hidden;
+  background: var(--barbg);
+  margin-top: 6px;
 }
-
-/* Balken-Füllung */
 .fill{
-  height: 100%;
-  width: 0%;
-  background: var(--fill);
-  border-radius: 999px;
-  transition: width .35s ease;   /* sanfte Animation */
+  position:absolute; inset:0 auto 0 0; width:0%; background:var(--fill);
+  transition: width 250ms ease;
 }
 
-/* Kleinere Variante in OBS passt gut mit 520x260 */
+.hidden{ display:none; }

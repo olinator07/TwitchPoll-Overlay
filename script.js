@@ -1,103 +1,80 @@
-// =============================
-// TRAGE HIER DEINE FIREBASE-URL EIN
-// (die Basis-URL aus der config.yml, OHNE .json am Ende)
-// Beispiel: "https://twitchpolloverlay-default-rtdb.europe-west1.firebasedatabase.app/"
-const FIREBASE_BASE = "https://twitchpolloverlay-default-rtdb.europe-west1.firebasedatabase.app";
-// =============================
+// <<< HIER DEINE DB-BASIS-URL EINTRAGEN (ohne /state.json am Ende) >>>
+const FIREBASE_URL = "https://twitchpolloverlay-default-rtdb.europe-west1.firebasedatabase.app";
 
-const POLL_URL = FIREBASE_BASE + "state.json";
+// Hilfsfunktionen
+const $ = sel => document.querySelector(sel);
+const toArray = (maybeArray) => {
+  if (Array.isArray(maybeArray)) return maybeArray;
+  if (maybeArray && typeof maybeArray === 'object') {
+    return Object.keys(maybeArray)
+      .sort((a,b) => Number(a) - Number(b))
+      .map(k => maybeArray[k]);
+  }
+  return [];
+};
+const secToMMSS = (s) => {
+  s = Math.max(0, Math.floor(s||0));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${m}:${r.toString().padStart(2,'0')}`;
+};
 
-const elTimer = document.getElementById("timer");
-const elPauseBox = document.getElementById("pauseBox");
-const elCooldownText = document.getElementById("cooldownText");
-const elPollBox = document.getElementById("pollBox");
+// DOM
+const barsEl = $('#bars');
+const sublineEl = $('#subline');
+const optEls = [$('#opt0'), $('#opt1'), $('#opt2')];
+const fillEls = [$('#fill0'), $('#fill1'), $('#fill2')];
 
-const elOpt = [ null,
-  document.getElementById("opt1"),
-  document.getElementById("opt2"),
-  document.getElementById("opt3")
-];
-const elCnt = [ null,
-  document.getElementById("cnt1"),
-  document.getElementById("cnt2"),
-  document.getElementById("cnt3")
-];
-const elBar = [ null,
-  document.getElementById("bar1"),
-  document.getElementById("bar2"),
-  document.getElementById("bar3")
-];
+// State-Update
+function render(state) {
+  const running = Boolean(state?.running);
+  const options = toArray(state?.options);
+  const counts = toArray(state?.counts);
+  const secondsLeft = Number(state?.secondsLeft) || 0;
+  const cooldown = Number(state?.cooldown) || 0;
 
-function mmss(n){
-  n = Math.max(0, n|0);
-  const m = Math.floor(n/60);
-  const s = n%60;
-  return `${m}:${s.toString().padStart(2,'0')}`;
-}
+  if (running && options.length >= 3) {
+    // Balken sichtbar
+    barsEl.hidden = false;
 
-function render(state){
-  // Erwartete Struktur (vom Plugin geschrieben):
-  // {
-  //   running: true|false,
-  //   secondsLeft: number,
-  //   cooldown: number,
-  //   options: ["Text1","Text2","Text3"],
-  //   counts: [c1,c2,c3],
-  //   status: "läuft" | "Pause" | "bereit" | "gestoppt" | ...
-  // }
+    // Timertext: „Abstimmung läuft: mm:ss“
+    sublineEl.textContent = `Abstimmung läuft: ${secToMMSS(secondsLeft)}`;
 
-  const running = !!state?.running;
-  const secondsLeft = state?.secondsLeft ?? 0;
-  const cooldown = state?.cooldown ?? 0;
+    const total = counts.reduce((a,b)=>a + (Number(b)||0), 0);
 
-  // Kopf-Timer: während running -> secondsLeft, sonst cooldown
-  elTimer.textContent = running ? mmss(secondsLeft) : (cooldown > 0 ? mmss(cooldown) : "—:—");
+    for (let i=0;i<3;i++){
+      const name = options[i] ?? `Option ${i+1}`;
+      const cnt  = Number(counts[i] || 0);
+      optEls[i].textContent = `${name} (${cnt})`;
 
-  if (running){
-    // Poll sichtbar, Pause-Text aus
-    elPollBox.classList.remove("hidden");
-    elPauseBox.classList.add("hidden");
-
-    const opts = Array.isArray(state.options) ? state.options : [];
-    const cnts = Array.isArray(state.counts) ? state.counts : [];
-    const total = Math.max(1, cnts.reduce((a,b)=>a+(b|0),0));
-
-    for (let i=1;i<=3;i++){
-      const name = opts[i-1] ?? `Option ${String.fromCharCode(64+i)}`;
-      const n = cnts[i-1] ?? 0;
-      const pct = Math.round((n/total)*100);
-
-      elOpt[i].textContent = name;
-      elCnt[i].textContent = n.toString();
-      elBar[i].style.width = pct + "%";
+      const pct = total > 0 ? Math.round((cnt / total) * 100) : 0;
+      fillEls[i].style.width = `${pct}%`;
     }
   } else {
-    // Pause (cooldown>0) anzeigen, Balken aus
-    elPollBox.classList.add("hidden");
-    if (cooldown > 0){
-      elPauseBox.classList.remove("hidden");
-      elCooldownText.textContent = mmss(cooldown);
-    } else {
-      // Weder running noch cooldown -> idle
-      elPauseBox.classList.remove("hidden");
-      elCooldownText.textContent = "—:—";
-    }
+    // Keine Balken anzeigen – nur Countdown „Nächste Abstimmung in …“
+    barsEl.hidden = true;
+    const seconds = cooldown > 0 ? cooldown : secondsLeft; // falls du secondsLeft auch im Idle für den Pause-Timer nutzt
+    sublineEl.textContent = `Nächste Abstimmung in ${secToMMSS(seconds)}`;
   }
 }
 
-async function tick(){
-  try{
-    const r = await fetch(POLL_URL, { cache: "no-store" });
-    if (!r.ok) throw new Error(r.status + " " + r.statusText);
-    const json = await r.json();
-    render(json || {});
-  }catch(e){
-    // Bei Fehler: nichts crashen, nur Timer als —
-    // console.log("fetch failed", e);
-  }finally{
-    setTimeout(tick, 1000);
+// Polling
+async function fetchState() {
+  try {
+    const res = await fetch(`${FIREBASE_URL}/state.json`, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    // Erwartetes Format: state-Objekt direkt (weil wir /state.json lesen)
+    render(data || {});
+  } catch (err) {
+    // beim Fehler einfach „Verbindung …“ zeigen, Balken aus
+    barsEl.hidden = true;
+    sublineEl.textContent = 'Verbindung …';
+    // Optional: console.error(err);
   }
 }
 
-// Start
-tick();
+// Start: alle 1s pullen
+fetchState();
+setInterval(fetchState, 1000);

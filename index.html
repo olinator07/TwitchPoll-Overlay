@@ -1,18 +1,39 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>TwitchPoll Overlay</title>
+  <title>Community Vote</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div id="card">
-    <h1 id="title">COMMUNITY VOTE</h1>
-    <div id="subtitle"><span id="timer">0:00</span></div>
+  <div id="overlay" class="overlay">
+    <div class="card">
+      <div class="header">
+        <div class="title">COMMUNITY VOTE</div>
+        <div class="timer" id="timer">—:—</div>
+      </div>
 
-    <!-- Container, wird von JS gefüllt -->
-    <div id="rows"></div>
+      <!-- Wenn Pause: Text -->
+      <div id="pauseBox" class="pause hidden">Nächste Abstimmung in <span id="cooldownText">—:—</span></div>
+
+      <!-- Wenn running: Optionen + Balken -->
+      <div id="pollBox" class="poll hidden">
+        <div class="row">
+          <div class="label"><span class="name" id="opt1">Option A</span><span class="count" id="cnt1">0</span></div>
+          <div class="bar"><div class="fill" id="bar1" style="width:0%"></div></div>
+        </div>
+        <div class="row">
+          <div class="label"><span class="name" id="opt2">Option B</span><span class="count" id="cnt2">0</span></div>
+          <div class="bar"><div class="fill" id="bar2" style="width:0%"></div></div>
+        </div>
+        <div class="row">
+          <div class="label"><span class="name" id="opt3">Option C</span><span class="count" id="cnt3">0</span></div>
+          <div class="bar"><div class="fill" id="bar3" style="width:0%"></div></div>
+        </div>
+      </div>
+
+    </div>
   </div>
 
   <script src="script.js"></script>
